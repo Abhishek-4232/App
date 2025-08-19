@@ -25,6 +25,10 @@ function Products() {
 
   const addProductMutation = useMutation({
     mutationFn: async (newProduct) => {
+      // Ensure quantity is not negative
+      if (newProduct.quantity < 0) {
+        throw new Error('Product quantity cannot be negative');
+      }
       const { data } = await axios.post(`${API_URL}/products`, newProduct);
       return data;
     },
@@ -32,15 +36,53 @@ function Products() {
       queryClient.invalidateQueries('products');
       setIsAddModalOpen(false);
       setNewProduct({ name: '', sku: '', quantity: '', minimumStockLevel: '' });
+    },
+    onError: (error) => {
+      alert(error.message);
+    }
+  });
+
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId) => {
+      try {
+        const { data } = await axios.delete(`${API_URL}/products/${productId}`);
+        return data;
+      } catch (error) {
+        throw new Error(
+          error.response?.data?.message || 
+          'Failed to delete product. Please try again.'
+        );
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['products']);
+      toast.success('Product deleted successfully');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      console.error('Delete error:', error);
     }
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const quantity = Number(newProduct.quantity);
+    const minimumStockLevel = Number(newProduct.minimumStockLevel);
+
+    if (quantity < 0) {
+      alert('Product quantity cannot be negative');
+      return;
+    }
+
+    if (minimumStockLevel < 0) {
+      alert('Minimum stock level cannot be negative');
+      return;
+    }
+
     addProductMutation.mutate({
       ...newProduct,
-      quantity: Number(newProduct.quantity),
-      minimumStockLevel: Number(newProduct.minimumStockLevel)
+      quantity,
+      minimumStockLevel
     });
   };
 
@@ -78,6 +120,9 @@ function Products() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -96,7 +141,11 @@ function Products() {
                   {product.minimumStockLevel}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {product.isLowStock ? (
+                  {product.quantity === 0 ? (
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                      Out of Stock
+                    </span>
+                  ) : product.isLowStock ? (
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                       Low Stock
                     </span>
@@ -105,6 +154,23 @@ function Products() {
                       In Stock
                     </span>
                   )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this product?')) {
+                        try {
+                          deleteProductMutation.mutate(product._id);
+                        } catch (error) {
+                          console.error('Delete error:', error);
+                        }
+                      }
+                    }}
+                    disabled={deleteProductMutation.isLoading}
+                    className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deleteProductMutation.isLoading ? 'Deleting...' : 'Delete'}
+                  </button>
                 </td>
               </tr>
             ))}
@@ -143,8 +209,9 @@ function Products() {
                   <label className="block text-sm font-medium text-gray-700">Quantity</label>
                   <input
                     type="number"
+                    min="0"
                     value={newProduct.quantity}
-                    onChange={(e) => setNewProduct({ ...newProduct, quantity: e.target.value })}
+                    onChange={(e) => setNewProduct({ ...newProduct, quantity: Math.max(0, e.target.value) })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     required
                     min="0"
