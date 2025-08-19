@@ -1,17 +1,17 @@
 import React from 'react';
 import { View } from 'react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
-import ProductList from '../../screens/ProductList';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import CreateOrder from '../../screens/CreateOrder';
 
 const queryClient = new QueryClient();
 
-export default function IndexScreen() {
+export default function OrdersScreen() {
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Screen options={{ headerTitle: 'Products' }} />
+      <Stack.Screen options={{ headerTitle: 'Create Order' }} />
       <QueryClientProvider client={queryClient}>
-        <ProductList />
+        <CreateOrder />
       </QueryClientProvider>
     </View>
   );

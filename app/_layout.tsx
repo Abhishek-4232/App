@@ -3,14 +3,37 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
+import { useEffect } from 'react';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { configurePushNotifications, checkLowStockProducts } from '../utils/notifications';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+
+  useEffect(() => {
+    async function initializeNotifications() {
+      try {
+        const token = await configurePushNotifications();
+        if (token) {
+          console.log('Push notification token:', token);
+        }
+        
+        // Check for low stock products initially and every 5 minutes
+        await checkLowStockProducts();
+        const interval = setInterval(checkLowStockProducts, 5 * 60 * 1000);
+        
+        return () => clearInterval(interval);
+      } catch (error) {
+        console.error('Error initializing notifications:', error);
+      }
+    }
+
+    initializeNotifications();
+  }, []);
 
   if (!loaded) {
     // Async font loading only occurs in development.
