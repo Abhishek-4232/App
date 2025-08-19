@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 import { useEffect } from 'react';
 
@@ -17,9 +18,12 @@ export default function RootLayout() {
   useEffect(() => {
     async function initializeNotifications() {
       try {
-        const token = await configurePushNotifications();
-        if (token) {
-          console.log('Push notification token:', token);
+        // Only proceed with push notification setup if not on web
+        if (Platform.OS !== 'web') {
+          const token = await configurePushNotifications();
+          if (token) {
+            console.log('Push notification token:', token);
+          }
         }
         
         // Check for low stock products initially and every 5 minutes
@@ -28,7 +32,8 @@ export default function RootLayout() {
         
         return () => clearInterval(interval);
       } catch (error) {
-        console.error('Error initializing notifications:', error);
+        // Log error but don't break the app
+        console.warn('Notification setup warning:', error);
       }
     }
 
