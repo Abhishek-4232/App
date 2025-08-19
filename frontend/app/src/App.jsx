@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import Orders from './pages/Orders';
 import Reports from './pages/Reports';
+import Notifications from './components/Notifications';
 
 const queryClient = new QueryClient();
 
@@ -15,6 +16,7 @@ function App() {
       <Router>
         <div className="min-h-screen bg-gray-100">
           <Navbar />
+          <Notifications />
           <main className="container mx-auto px-4 py-8">
             <Routes>
               <Route path="/" element={<Dashboard />} />

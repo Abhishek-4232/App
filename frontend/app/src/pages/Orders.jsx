@@ -1,8 +1,22 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://app-oq9q.onrender.com/api';
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'shipped':
+      return 'bg-blue-100 text-blue-800';
+    case 'delivered':
+      return 'bg-green-100 text-green-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
 
 function Orders() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -36,6 +50,20 @@ function Orders() {
       queryClient.invalidateQueries('products');
       setIsCreateModalOpen(false);
       setSelectedProducts([{ productId: '', quantity: '' }]);
+    }
+  });
+
+  const updateOrderStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status }) => {
+      const { data } = await axios.patch(`${API_URL}/orders/${orderId}`, { status });
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries('orders');
+      toast.success(`Order status updated to ${variables.status}`);
+    },
+    onError: (error) => {
+      toast.error('Failed to update order status: ' + (error.response?.data?.message || error.message));
     }
   });
 
@@ -109,17 +137,25 @@ function Orders() {
                   {order._id.slice(-6)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      order.status === 'Pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : order.status === 'Processed'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}
-                  >
-                    {order.status}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
+                    <select
+                      value={order.status}
+                      onChange={(e) => {
+                        updateOrderStatusMutation.mutate({
+                          orderId: order._id,
+                          status: e.target.value
+                        });
+                      }}
+                      className="ml-2 text-sm border rounded-md px-2 py-1 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
+                    </select>
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {order.totalItems}

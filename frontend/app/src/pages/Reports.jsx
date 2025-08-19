@@ -24,7 +24,7 @@ ChartJS.register(
   Legend
 );
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://app-oq9q.onrender.com/api';
 
 function Reports() {
   const { data: products } = useQuery({

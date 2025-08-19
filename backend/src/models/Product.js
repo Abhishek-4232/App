@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { sendStockAlert } = require('../services/emailService');
 
 const productSchema = new mongoose.Schema({
     name: {
@@ -34,9 +35,15 @@ const productSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Pre-save middleware to check if stock is low
-productSchema.pre('save', function(next) {
+// Pre-save middleware to check if stock is low and send email notification
+productSchema.pre('save', async function(next) {
+    const previousIsLowStock = this.isLowStock;
     this.isLowStock = this.quantity <= this.minimumStockLevel;
+    
+    // Send email notification only when stock becomes low
+    if (this.isLowStock && !previousIsLowStock) {
+        await sendStockAlert(this);
+    }
     next();
 });
 
