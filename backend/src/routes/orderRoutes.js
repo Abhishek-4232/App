@@ -3,6 +3,36 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 
+// @route   PATCH /api/orders/:id
+// @desc    Update order status
+router.patch('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        // Validate status
+        const validStatuses = ['pending', 'shipped', 'delivered'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ 
+                message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` 
+            });
+        }
+
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        order.status = status;
+        await order.save();
+
+        res.json(order);
+    } catch (error) {
+        console.error('Error updating order status:', error);
+        res.status(500).json({ message: 'Server error updating order status' });
+    }
+});
+
 // @route   POST /api/orders
 // @desc    Create a new order
 router.post('/', async (req, res) => {

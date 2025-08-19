@@ -55,15 +55,25 @@ function Orders() {
 
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }) => {
-      const { data } = await axios.patch(`${API_URL}/orders/${orderId}`, { status });
-      return data;
+      try {
+        const { data } = await axios.patch(`${API_URL}/orders/${orderId}`, { status });
+        return data;
+      } catch (error) {
+        if (error.response?.status === 404) {
+          throw new Error('Order not found. The page may need to be refreshed.');
+        }
+        throw error;
+      }
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries('orders');
       toast.success(`Order status updated to ${variables.status}`);
     },
     onError: (error) => {
-      toast.error('Failed to update order status: ' + (error.response?.data?.message || error.message));
+      toast.error(error.message || 'Failed to update order status. Please try again.');
+      if (error.message.includes('refresh')) {
+        queryClient.invalidateQueries('orders');
+      }
     }
   });
 
